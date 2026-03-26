@@ -194,6 +194,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatProps = {}) {
   const queueText = (text: string, agentId: string) => {
     if (!ttsEnabled) return;
 
+    stopRequestedRef.current = false;
     ttsQueueRef.current.push({ text, agentId });
     void processQueue();
   };

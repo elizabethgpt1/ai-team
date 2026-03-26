@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { agents } from "@/config/agents";
+import { agents, getAgent } from "@/config/agents";
 import { useVoiceChat } from "@/hooks/useVoiceChat";
 import { Mic, Square, Volume2, VolumeX } from "lucide-react";
 
@@ -51,61 +51,83 @@ function TeamPageInner() {
     setResponses([]);
     setInput("");
 
-    for (const agent of teamAgents) {
-      setResponses((prev) => [
-        ...prev,
+    setResponses([
+      {
+        agentId: "router",
+        agentName: "Lukka",
+        content: "Choosing the best specialist...",
+      },
+    ]);
+
+    try {
+      const routerRes = await fetch("/api/router", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage,
+        }),
+      });
+
+      const routerData = await routerRes.json();
+      const selectedAgentId = routerData.agentId;
+      const selectedAgent = getAgent(selectedAgentId);
+
+      if (!selectedAgent || selectedAgent.id === "router") {
+        setResponses([
+          {
+            agentId: "router",
+            agentName: "Lukka",
+            content: "Router could not choose a valid agent.",
+          },
+        ]);
+        setLoading(false);
+        return;
+      }
+
+      setResponses([
         {
-          agentId: agent.id,
-          agentName: agent.name,
+          agentId: selectedAgent.id,
+          agentName: selectedAgent.name,
           content: "Thinking...",
         },
       ]);
+
+      const agentRes = await fetch("/api/agent-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: userMessage }],
+          systemPrompt: selectedAgent.systemPrompt,
+        }),
+      });
+
+      const agentData = await agentRes.json();
+      const finalText = agentData.response || "No response";
+
+      setResponses([
+        {
+          agentId: selectedAgent.id,
+          agentName: selectedAgent.name,
+          content: finalText,
+        },
+      ]);
+
+      voice.queueText(finalText, selectedAgent.id);
+    } catch (error) {
+      setResponses([
+        {
+          agentId: "router",
+          agentName: "Lukka",
+          content: "Something went wrong",
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
-
-    const promises = teamAgents.map(async (agent) => {
-      try {
-        const res = await fetch("/api/agent-chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messages: [{ role: "user", content: userMessage }],
-            systemPrompt: agent.systemPrompt,
-          }),
-        });
-
-        const data = await res.json();
-        const finalText = data.response || "No response";
-
-        setResponses((prev) =>
-          prev.map((response) =>
-            response.agentId === agent.id
-              ? {
-                  ...response,
-                  content: finalText,
-                }
-              : response
-          )
-        );
-
-        voice.queueText(finalText, agent.id);
-      } catch (error) {
-        setResponses((prev) =>
-          prev.map((response) =>
-            response.agentId === agent.id
-              ? {
-                  ...response,
-                  content: "Something went wrong",
-                }
-              : response
-          )
-        );
-      }
-    });
-
-    await Promise.all(promises);
-    setLoading(false);
   };
 
   return (
@@ -127,7 +149,8 @@ function TeamPageInner() {
             Team Chat
           </h1>
           <p className="max-w-2xl text-white/70">
-            Ask one question and get answers from the whole AI team.
+            Ask one question and Lukka will choose the best specialist from the
+            AI team.
           </p>
         </motion.div>
 
@@ -225,8 +248,8 @@ function TeamPageInner() {
                       voice.isListening
                         ? "border-red-400/30 bg-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
                         : voice.micDenied
-                        ? "border-red-500/20 bg-red-950/50 hover:bg-red-900/60"
-                        : "border-white/10 bg-white/10 hover:bg-white/15"
+                          ? "border-red-500/20 bg-red-950/50 hover:bg-red-900/60"
+                          : "border-white/10 bg-white/10 hover:bg-white/15"
                     }`}
                   >
                     <Mic size={20} />
@@ -327,9 +350,18 @@ function TeamPageInner() {
               <div className="space-y-3">
                 <AnimatePresence>
                   {responses.map((response, index) => {
-                    const currentAgent = teamAgents.find(
-                      (agent) => agent.id === response.agentId
-                    );
+                    const currentAgent =
+                      response.agentId === "router"
+                        ? {
+                            id: "router",
+                            name: "Lukka",
+                            role: "AI Router",
+                            avatar: "/avatars/router.jpg",
+                            color: "#f59e0b",
+                          }
+                        : teamAgents.find(
+                            (agent) => agent.id === response.agentId
+                          );
 
                     return (
                       <motion.div
@@ -377,9 +409,10 @@ function TeamPageInner() {
                           <div className="font-medium">{response.agentName}</div>
                         </div>
 
-                        {response.content === "Thinking..." ? (
+                        {response.content === "Thinking..." ||
+                        response.content === "Choosing the best specialist..." ? (
                           <div className="flex items-center gap-2 text-white/70">
-                            <span>Thinking</span>
+                            <span>{response.content.replace("...", "")}</span>
                             <div className="flex gap-1">
                               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/70 [animation-delay:-0.3s]" />
                               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/70 [animation-delay:-0.15s]" />
@@ -398,7 +431,8 @@ function TeamPageInner() {
 
                 {responses.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-10 text-center text-white/45">
-                    The team answers will appear here.
+                    Lukka will choose the right specialist and the answer will
+                    appear here.
                   </div>
                 )}
 

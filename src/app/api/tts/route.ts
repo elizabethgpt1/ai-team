@@ -3,6 +3,10 @@ import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 const voices: Record<string, string> = {
   "brand-manager": "ru-RU-SvetlanaNeural",
   "product-assistant": "ru-RU-DmitryNeural",
+  "content-creator": "ru-RU-SvetlanaNeural",
+  "marketing-strategist": "ru-RU-DariyaNeural",
+  "sales-assistant": "ru-RU-DmitryNeural",
+  "hockey-expert": "ru-RU-DmitryNeural",
   router: "ru-RU-DmitryNeural",
 };
 
