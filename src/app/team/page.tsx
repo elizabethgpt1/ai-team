@@ -21,10 +21,7 @@ function TeamPageInner() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const teamAgents = agents.filter(
-    (agent) =>
-      agent.id === "brand-manager" || agent.id === "product-assistant"
-  );
+  const teamAgents = agents.filter((agent) => agent.id !== "router");
 
   const voice = useVoiceChat({
     onTranscript: (text) => {
@@ -119,7 +116,7 @@ function TeamPageInner() {
         <div className="absolute bottom-[-120px] left-1/2 h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl p-6 md:p-8">
+      <div className="relative mx-auto max-w-6xl p-6 md:p-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -134,7 +131,7 @@ function TeamPageInner() {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
           <motion.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
@@ -152,12 +149,12 @@ function TeamPageInner() {
                   key={agent.id}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: index * 0.08 }}
+                  transition={{ duration: 0.35, delay: index * 0.05 }}
                   style={{ willChange: "transform" }}
                 >
                   <Link
                     href={`/agents/${agent.id}`}
-                    className="block rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl transition duration-300 hover:bg-white/[0.07] hover:border-white/20 hover:scale-[1.01]"
+                    className="block rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl transition duration-300 hover:scale-[1.01] hover:border-white/20 hover:bg-white/[0.07]"
                     style={{
                       boxShadow: `0 0 20px ${agent.color}20`,
                     }}
@@ -186,7 +183,9 @@ function TeamPageInner() {
                               boxShadow: `0 0 14px ${agent.color}`,
                             }}
                           />
-                          <div className="truncate font-medium">{agent.name}</div>
+                          <div className="truncate font-medium">
+                            {agent.name}
+                          </div>
                         </div>
 
                         <div className="mt-1 text-sm text-white/60">
